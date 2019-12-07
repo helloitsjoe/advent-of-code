@@ -1,14 +1,14 @@
 
-function test(actual, expected) {
+function test(actual, expected, message) {
   if (Array.isArray(actual)) {
     actual = actual.toString();
     expected = expected.toString();
   }
   if (actual !== expected) {
-    console.error('Actual:', actual, '| Expected:', expected);
+    console.error(message, 'FAIL!', 'Actual:', actual, '| Expected:', expected);
     return;
   }
-  console.log('Pass!', actual);
+  console.log(message, 'PASS!', actual);
 }
 
 module.exports = test;
