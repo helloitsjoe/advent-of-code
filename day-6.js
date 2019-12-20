@@ -1,38 +1,38 @@
 const data = require('./day-6-data');
 const test = require('./test');
 
-const convertToMap = arr => {
+const getOrbiterMap = arr => {
   return arr.reduce((acc, c) => {
     const [host, orbiter] = c.split(')');
-    acc[host] = orbiter;
+    acc[orbiter] = host;
     return acc;
   }, {});
 };
 
-
-const getRoot = input => {
-  const orbiters = input.reduce((acc, c) => {
-    const [a, b] = c.split(')');
-    acc[b] = true;
-    return acc;
-  }, {});
-  const roots = input.map(str => {
-    const [a, b] = str.split(')');
-    if (!orbiters[a]) {
-      return a;
-    }
-  });
-  return roots.filter(Boolean);
-}
-
-const getNumOrbits = root => {
+const getOrbits = arr => {
+  //console.log('arr', arr);
+  const orbiterMap = getOrbiterMap(arr);
+  // console.log(orbiterMap);
   
+  return arr.reduce((acc, curr) => {
+    let orbits = 0;
+    let [host, orbiter] = curr.split(')');
+
+    while (orbiter !== 'COM') {
+      orbits++;
+      host = orbiter;
+      orbiter = orbiterMap[host];
+    }
+
+    return acc + orbits;
+
+    // TODO: memoize
+  }, 0);
 }
 
-const dataMap = convertToMap(data);
+test(getOrbits(['A)B', 'B)C', 'COM)A']), 6);
+test(getOrbits(['A)B', 'B)C', 'COM)A', 'B)D', 'D)E']), 13);
+test(getOrbits(data), 122782);
 
-console.log(dataMap);
-
-test(getRoot(data), 'COM', 'root is COM');
-
+// COM is root
 
