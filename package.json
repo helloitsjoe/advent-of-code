@@ -1,0 +1,23 @@
+{
+  "name": "advent",
+  "version": "1.0.0",
+  "description": "https://adventofcode.com/2019",
+  "main": "day-2.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/helloitsjoe/advent-of-code.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/helloitsjoe/advent-of-code/issues"
+  },
+  "homepage": "https://github.com/helloitsjoe/advent-of-code#readme",
+  "devDependencies": {
+    "jest": "^24.9.0"
+  }
+}
