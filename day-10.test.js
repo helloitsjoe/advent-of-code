@@ -1,42 +1,53 @@
-const data = require('./day-10-data');
+// const data = require('./day-10-data');
 
 // console.log(data);
 
 const getCount = (x, y, arr) => {
-  const miss = space => space !== '#';
+  const miss = (row, x) => row && row[x] !== '#';
   const hit = (row, x) => row && row[x] === '#';
 
   let count = 0;
   let range = 1;
   const row = arr[y];
 
-  if (miss(row[x])) return 0;
+  if (miss(row, x)) return 0;
+
+  const operate = (coord, op, range = 0) => {
+    if (!op) {
+      return coord; 
+    }
+    return op === '+' ? coord + range : coord - range;
+  };
 
   // prev/next in row
-  for (let range = 1; range < row.length; range++) {
-    if (hit(row, x - range)) {
-      count++;
-      break;
-    }
-  }
-  for (let range = 1; range < row.length; range++) {
-    if (hit(row, x + range)) {
-      count++;
-      break;
-    }
-  }
+  const directions = [
+    // prev in row
+    { opX: '-', length: row.length },
+    // next in row
+    { opX: '+', length: row.length },
+    // prev in column
+    { opY: '-'},
+    // next in column
+    { opY: '+'},
+    // diagonal down right
+    { opX: '+', opY: '+'},
+    // diagonal up right
+    { opX: '+', opY: '-'},
+    // diagonal down left
+    { opX: '-', opY: '+'},
+    // diagonal up left
+    { opX: '-', opY: '-'},
+  ];
 
-  // prev/next in column
-  for (let range = 1; range < arr.length; range++) {
-    if (hit(arr[y - range], x)) {
-      count++;
-      break;
-    }
-  }
-  for (let range = 1; range < arr.length; range++) {
-    if (hit(arr[y + range], x)) {
-      count++;
-      break;
+  for (let direction of directions) {
+    const { opX, opY } = direction;
+    const length = direction.length || arr.length;
+
+    for (let range = 1; range < length; range++) {
+      if (hit(arr[operate(y, opY, range)], operate(x, opX, range))) {
+        count++;
+        break;
+      }
     }
   }
 
@@ -57,6 +68,19 @@ const getAllCounts = input => {
   }
   return output;
 };
+
+
+it('getCount detects asteroids diagonally', () => {
+  const input = [
+    ['..#..'],
+    ['.....'],
+    ['#...#'],
+  ];
+  const arrInput = convertToArr(input);
+  expect(getCount(2, 0, arrInput)).toBe(2);
+  expect(getCount(0, 2, arrInput)).toBe(2);
+  expect(getCount(4, 2, arrInput)).toBe(2);
+});
 
 it('getCount detects asteroids vertically with a space', () => {
   const input = [
