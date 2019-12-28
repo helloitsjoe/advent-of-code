@@ -22,9 +22,9 @@ const getCount = (x, y, arr) => {
   // prev/next in row
   const directions = [
     // prev in row
-    { opX: '-', length: row.length },
+    { opX: '-' },
     // next in row
-    { opX: '+', length: row.length },
+    { opX: '+' },
     // prev in column
     { opY: '-'},
     // next in column
@@ -41,16 +41,27 @@ const getCount = (x, y, arr) => {
 
   for (let direction of directions) {
     const { opX, opY } = direction;
-    const length = direction.length || arr.length;
+    const length = Math.max(arr.length, row.length);
 
-    for (let range = 1; range < length; range++) {
-      if (hit(arr[operate(y, opY, range)], operate(x, opX, range))) {
-        count++;
-        break;
+    for (let xOffset = 1; xOffset < length; xOffset++) {
+      let found = false;
+      for (let yOffset = 1; yOffset < length; yOffset++) {
+        for (let range = 1; range < length; range++) {
+          const xWithRange = operate(x, opX, range * xOffset);
+          const yWithRange = operate(y, opY, range * yOffset);
+
+          if (hit(arr[yWithRange], xWithRange)) {
+            count++;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
       }
+      if (found) break;
     }
   }
-
+  
   return count;
 };
 
@@ -69,6 +80,38 @@ const getAllCounts = input => {
   return output;
 };
 
+it('small test', () => {
+  const input = [
+    ['.#..#'],
+    ['.....'],
+    ['#####'],
+    ['....#'],
+    ['...##']
+  ];
+  const arrInput = convertToArr(input);
+  expect(getCount(1, 0, arrInput)).toBe(7);
+});
+
+it('getCount detects asteroids acute angle', () => {
+  const input = [
+    ['#..'],
+    ['..#'],
+  ];
+  const arrInput = convertToArr(input);
+  expect(getCount(0, 0, arrInput)).toBe(1);
+  expect(getCount(2, 1, arrInput)).toBe(1);
+});
+
+it('getCount detects asteroids obtuse angle', () => {
+  const input = [
+    ['#..'],
+    ['...'],
+    ['.#.'],
+  ];
+  const arrInput = convertToArr(input);
+  expect(getCount(0, 0, arrInput)).toBe(1);
+  expect(getCount(1, 2, arrInput)).toBe(1);
+});
 
 it('getCount detects asteroids diagonally', () => {
   const input = [
