@@ -17,247 +17,344 @@ const getAllCounts = input => {
   return output;
 };
 
-const getCount = (x, y, arr) => {
-  const miss = (row, x) => !row || row && row[x] !== '#';
+const getCount = (currX, currY, arrInput) => {
   const hit = (row, x) => row && row[x] === '#';
 
   let count = 0;
-  let range = 1;
-  const row = arr[y];
 
-  if (miss(row, x)) return 0;
+  // target is asteroid we're seeking
+  // current is current square we're counting
 
-  const operate = (coord, op, range = 0) => {
-    if (!op) {
-      return coord; 
-    }
-    return op === '+' ? coord + range : coord - range;
-  };
+  const currRow = arrInput[currY];
 
-  // prev/next in row
-  const directions = [
-    // prev in row
-    { opX: '-' },
-    // next in row
-    { opX: '+' },
-    // prev in column
-    { opY: '-'},
-    // next in column
-    { opY: '+'},
-    // diagonal down right
-    { opX: '+', opY: '+'},
-    // diagonal up right
-    { opX: '+', opY: '-'},
-    // diagonal down left
-    { opX: '-', opY: '+'},
-    // diagonal up left
-    { opX: '-', opY: '-'},
-  ];
+  if (!hit(currRow, currX)) return 0;
 
-  for (let direction of directions) {
-    const { opX, opY } = direction;
-    const length = Math.max(arr.length, row.length);
+  // start in upper left corner, traverse top + bottom
+  const firstY = 0; 
+  const lastY = arrInput.length - 1;
+
+  [firstY, lastY].map(targetY => {
+    // Now that we need to check horizontal, this might need to change
+    if (currY === targetY) return;
+
+    const targetRow = arrInput[targetY];
     
-    const find = (xOffset, yOffset) => {
-        for (let range = 1; range < length; range++) {
-          const xWithRange = operate(x, opX, range * xOffset);
-          const yWithRange = operate(y, opY, range * yOffset);
-
-          if (miss(arr[yWithRange], xWithRange)) break;
-
-          if (found) {
-            console.log('found:', xWithRange, yWithRange, '| xOff:', xOffset, 'yOff:', yOffset)
-            break;
-          }
-
-          if (hit(arr[yWithRange], xWithRange)) {
-            console.log('HIT:', xWithRange, yWithRange, '| xOff:', xOffset, 'yOff:', yOffset)
-            count++;
-            found = true;
-            break;
-          }
-        }
-    }
-
-    let found = false;
-
-    for (let xOffset = 1; xOffset < length; xOffset++) {
-      for (let yOffset = 1; yOffset < length; yOffset++) {
-        find(xOffset, yOffset);
+    for (let targetX = 0; targetX < targetRow.length; targetX++) {
+      if (seekInwardsVert(targetX, targetY)) {
+        count++;
       }
     }
+  });
+
+  const firstX = 0;
+  const lastX = arrInput[0].length;
+
+  [firstX, lastX].map(targetX => {
+    // This probably needs to change too
+    if (currX === targetX) return;
+
+    for (let targetY = 0; targetY < arrInput.length; targetY++) {
+      if (seekInwardsHoriz(targetX, targetY)) {
+        count++;
+      }
+    }
+  });
+
+  function seekInwardsHoriz(x, y) {
+    // console.log(currX, currY, '|', x, y)
+    if (!isValidTarget(x, y)) return false;
+
+    const newTargetRow = arrInput[y];
+
+    if (hit(newTargetRow, x)) {
+      console.log('HIT!', x, y);
+      return true;
+    }
+
+    const diffX = currX - x;
+    const diffY = currY - y;
+    // console.log('diffY', diffY);
+
+    if (diffY === 0) {
+      const newX = diffX > 0 ? x + 1 : x - 1;
+      return seekInwardsHoriz(newX, y);
+    }
+
+    // Sides: diffY should always be larger than diffX
+    const factor = Math.abs(diffY / diffX);
+
+    if (factor !== parseInt(factor, 10)) return false;
+
+    const newY = diffY > 0 ? y + factor : y - factor;
+    const newX = diffX > 0 ? x + 1 : x - 1;
+
+    return seekInwardsHoriz(newX, newY);
   }
-  
+
+  function seekInwardsVert(x, y) {
+    console.log(currX, currY, '|', x, y)
+    if (!isValidTarget(x, y)) return false;
+
+    const newTargetRow = arrInput[y];
+
+    if (hit(newTargetRow, x)) {
+      console.log('HIT!', x, y);
+      return true;
+    }
+
+    const diffX = currX - x;
+    const diffY = currY - y;
+
+    // if x is 0, traverse inwards by 1 at a time
+    // (if targetY > currentY, add 1, otherwise subtract 1)
+    if (diffX === 0) {
+      const newY = diffY > 0 ? y + 1 : y - 1;
+      return seekInwardsVert(x, newY);
+    }
+
+    // Top/bottom: diffX should always be larger than diffY
+    const factor = Math.abs(diffX / diffY);
+
+    if (factor !== parseInt(factor, 10)) return false;
+
+    const newY = diffY > 0 ? y + factor : y - factor;
+    const newX = diffX > 0 ? x + 1 : x - 1;
+
+    return seekInwardsVert(newX, newY);
+  }
+
+  function isValidTarget(x, y) {
+    if (Math.abs(x) > arrInput[y.length] ||
+      Math.abs(y) > arrInput.length) {
+      console.log('OUT OF BOUNDS', x, y);
+      return false;
+    }
+    if (x === currX && y === currY) return false;
+
+    return true;
+  }
+
   return count;
-};
 
-fit('minimal directional example', () => {
-  // My algorithm needs fixing. It hits on 4,2 | 2,4 | 3,3
-  // but misses on 3,4 and 4,3
-  const input = [
-    ['.....'],
-    ['.....'],
-    ['..#.#'],
-    ['...##'],
-    ['..###']
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(2, 2, arrInput)).toBe(5);
-});
-
-
-it('getCount detects asteroids vertically', () => {
-  const input = [
-    ['#..'],
-    ['#..'],
-    ['#..']
-  ]
-  const arrInput = convertToArr(input);
-  expect(getCount(0, 0, arrInput)).toBe(1);
-  expect(getCount(0, 1, arrInput)).toBe(2);
-  expect(getCount(0, 2, arrInput)).toBe(1);
-});
-
-it('finds in every direction', () => {
-  const input = [
-    ['#####'],
-    ['#...#'],
-    ['#.#.#'],
-    ['#...#'],
-    ['#####']
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(2, 2, arrInput)).toBe(16);
-});
-
-it('getCount detects asteroids horizontally with a space', () => {
-  const input = [
-    ['.....'],
-    ['#.#.#'],
-  ]
-  const arrInput = convertToArr(input);
-  expect(getCount(0, 0, arrInput)).toBe(0);
-  expect(getCount(0, 1, arrInput)).toBe(1);
-  expect(getCount(1, 1, arrInput)).toBe(0);
-  expect(getCount(2, 1, arrInput)).toBe(2);
-  expect(getCount(3, 1, arrInput)).toBe(0);
-  expect(getCount(4, 1, arrInput)).toBe(1);
-});
-
-xit('small test', () => {
-  const input = [
-    ['.#..#'],
-    ['.....'],
-    ['#####'],
-    ['....#'],
-    ['...##']
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(1, 0, arrInput)).toBe(7);
-});
-
-it('getCount detects asteroids acute angle', () => {
-  const input = [
-    ['#..'],
-    ['..#'],
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(0, 0, arrInput)).toBe(1);
-  expect(getCount(2, 1, arrInput)).toBe(1);
-});
-
-it('getCount detects asteroids obtuse angle', () => {
-  const input = [
-    ['#..'],
-    ['...'],
-    ['.#.'],
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(0, 0, arrInput)).toBe(1);
-  expect(getCount(1, 2, arrInput)).toBe(1);
-});
-
-it('getCount detects asteroids diagonally', () => {
-  const input = [
-    ['..#..'],
-    ['.....'],
-    ['#...#'],
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(2, 0, arrInput)).toBe(2);
-  expect(getCount(0, 2, arrInput)).toBe(2);
-  expect(getCount(4, 2, arrInput)).toBe(2);
-});
-
-it('getCount detects asteroids vertically with a space', () => {
-  const input = [
-    ['#.'],
-    ['..'],
-    ['#.'],
-    ['..'],
-    ['#.']
-  ];
-  const arrInput = convertToArr(input);
-  expect(getCount(0, 0, arrInput)).toBe(1);
-  expect(getCount(0, 1, arrInput)).toBe(0);
-  expect(getCount(0, 2, arrInput)).toBe(2);
-  expect(getCount(0, 3, arrInput)).toBe(0);
-  expect(getCount(0, 4, arrInput)).toBe(1);
-});
-
-
-it('returns all zeros for all dots', () => {
-  const input = [
-    ['...'],
-    ['...']
-  ];
-  expect(getAllCounts(input)).toEqual([
-    [0, 0, 0],
-    [0, 0, 0]
-  ]);
-})
-
-it('getCount detects asteroids horizontally', () => {
-  const input = [
-    ['...'],
-    ['###'],
-  ]
-  const arrInput = convertToArr(input);
-  expect(getCount(0, 0, arrInput)).toBe(0);
-  expect(getCount(0, 1, arrInput)).toBe(1);
-  expect(getCount(1, 1, arrInput)).toBe(2);
-  expect(getCount(2, 1, arrInput)).toBe(1);
-});
-
-it('getAllCounts converts asteroids to counts', () => {
-  const input = [
-    ['...'],
-    ['###'],
-  ]
-  expect(getAllCounts(input)).toEqual([
-    [0, 0, 0],
-    [1, 2, 1]
-  ]);
-});
-
-const getGridMax = allCounts => {
-  const {x, y} = allCounts.reduce((gridMax, rowArr, y) => {
-    const row = rowArr.reduce((rowMax, val, x) => {
-      return val > rowMax.val ? {x, val} : rowMax;
-    }, {x: 0, val: 0});
-
-    return row.val > gridMax.val
-      ? {y, x: row.x, val: row.val}
-      : gridMax;
-  }, {x: 0, y: 0, val: 0});
-
-  return `${x},${y}`;
 }
 
-it('detects asteroids in a line', () => {
-  const input = [
-    ['...'],
-    ['###'],
-  ]
-  expect(getGridMax(getAllCounts(input))).toBe('1,1');
+describe('horizontal', () => {
+  fit('getCount detects asteroids horizontally', () => {
+    const input = [
+      ['...'],
+      ['###'],
+    ]
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(0);
+    expect(getCount(0, 1, arrInput)).toBe(1);
+    expect(getCount(1, 1, arrInput)).toBe(2);
+    expect(getCount(2, 1, arrInput)).toBe(1);
+  });
+
+  fit('getCount detects INNER asteroids horizontally', () => {
+    const input = [
+      ['.....'],
+      ['.###.'],
+    ]
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(0);
+    expect(getCount(0, 1, arrInput)).toBe(0);
+    expect(getCount(1, 1, arrInput)).toBe(1);
+    expect(getCount(2, 1, arrInput)).toBe(2);
+    expect(getCount(3, 1, arrInput)).toBe(1);
+    expect(getCount(4, 1, arrInput)).toBe(0);
+  });
+
+  fit('does not overdetect horizontally', () => {
+    const input = [
+      ['.....'],
+      ['#####'],
+    ]
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(0);
+    expect(getCount(0, 1, arrInput)).toBe(1);
+    expect(getCount(1, 1, arrInput)).toBe(2);
+    expect(getCount(2, 1, arrInput)).toBe(2);
+    expect(getCount(3, 1, arrInput)).toBe(2);
+    expect(getCount(4, 1, arrInput)).toBe(1);
+  });
 });
+
+xdescribe('diagonal', () => {
+  fit('getCount detects INNER asteroids diagonally', () => {
+    const input = [
+      ['...'],
+      ['.#.'],
+      ['#..'],
+    ]
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 2, arrInput)).toBe(1);
+    expect(getCount(1, 1, arrInput)).toBe(1);
+  });
+
+  it('getCount detects asteroids acute angle', () => {
+    const input = [
+      ['#..'],
+      ['..#'],
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(1);
+    expect(getCount(2, 1, arrInput)).toBe(1);
+  });
+
+  it('getCount detects asteroids obtuse angle', () => {
+    const input = [
+      ['#..'],
+      ['...'],
+      ['.#.'],
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(1);
+    expect(getCount(1, 2, arrInput)).toBe(1);
+  });
+
+  it('getCount detects asteroids diagonally', () => {
+    const input = [
+      ['..#..'],
+      ['.....'],
+      ['#...#'],
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(2, 0, arrInput)).toBe(2);
+    expect(getCount(0, 2, arrInput)).toBe(2);
+    expect(getCount(4, 2, arrInput)).toBe(2);
+  });
+});
+
+fdescribe('simple', () => {
+  it('returns all zeros for all dots', () => {
+    const input = [
+      ['...'],
+      ['...']
+    ];
+    expect(getAllCounts(input)).toEqual([
+      [0, 0, 0],
+      [0, 0, 0]
+    ]);
+  })
+});
+
+fdescribe('vertical', () => {
+  it('getCount detects asteroids vertically', () => {
+    const input = [
+      ['#..'],
+      ['#..'],
+      ['#..']
+    ]
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(1);
+    expect(getCount(0, 1, arrInput)).toBe(2);
+    expect(getCount(0, 2, arrInput)).toBe(1);
+  });
+
+  it('getCount detects INNER asteroids vertically', () => {
+    const input = [
+      ['...'],
+      ['#..'],
+      ['#..'],
+      ['#..'],
+      ['...']
+    ]
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(0);
+    expect(getCount(0, 1, arrInput)).toBe(1);
+    expect(getCount(0, 2, arrInput)).toBe(2);
+    expect(getCount(0, 3, arrInput)).toBe(1);
+    expect(getCount(0, 4, arrInput)).toBe(0);
+  });
+
+  it('getCount does not overdetect vertical asteroids', () => {
+    const input = [
+      ['#.'],
+      ['#.'],
+      ['#.'],
+      ['#.'],
+      ['#.']
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(0, 0, arrInput)).toBe(1);
+    expect(getCount(0, 1, arrInput)).toBe(2);
+    expect(getCount(0, 2, arrInput)).toBe(2);
+    expect(getCount(0, 3, arrInput)).toBe(2);
+    expect(getCount(0, 4, arrInput)).toBe(1);
+  });
+});
+
+xdescribe('complex', () => {
+  it('minimal directional example', () => {
+    const input = [
+      ['.....'],
+      ['.....'],
+      ['..#.#'],
+      ['...##'],
+      ['..###']
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(2, 2, arrInput)).toBe(5);
+  });
+
+
+  it('finds in every direction', () => {
+    const input = [
+      ['#####'],
+      ['#...#'],
+      ['#.#.#'],
+      ['#...#'],
+      ['#####']
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(2, 2, arrInput)).toBe(16);
+  });
+
+  it('small test', () => {
+    const input = [
+      ['.#..#'],
+      ['.....'],
+      ['#####'],
+      ['....#'],
+      ['...##']
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(1, 0, arrInput)).toBe(7);
+  });
+});
+
+xdescribe('getAllCounts', () => {
+  it('getAllCounts converts asteroids to counts', () => {
+    const input = [
+      ['...'],
+      ['###'],
+    ]
+    expect(getAllCounts(input)).toEqual([
+      [0, 0, 0],
+      [1, 2, 1]
+    ]);
+  });
+});
+
+// const getGridMax = allCounts => {
+//   const {x, y} = allCounts.reduce((gridMax, rowArr, y) => {
+//     const row = rowArr.reduce((rowMax, val, x) => {
+//       return val > rowMax.val ? {x, val} : rowMax;
+//     }, {x: 0, val: 0});
+// 
+//     return row.val > gridMax.val
+//       ? {y, x: row.x, val: row.val}
+//       : gridMax;
+//   }, {x: 0, y: 0, val: 0});
+// 
+//   return `${x},${y}`;
+// }
+// 
+// it('detects asteroids in a line', () => {
+//   const input = [
+//     ['...'],
+//     ['###'],
+//   ]
+//   expect(getGridMax(getAllCounts(input))).toBe('1,1');
+// });
