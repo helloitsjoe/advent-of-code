@@ -25,16 +25,16 @@ const getCount = (currX, currY, arrInput) => {
   // target is asteroid we're seeking
   // current is current square we're counting
 
-  const currRow = arrInput[currY];
-
-  if (!hit(currRow, currX)) return 0;
+  if (!hit(arrInput[currY], currX)) return 0;
 
   // start in upper left corner, traverse top + bottom
   const firstY = 0; 
   const lastY = arrInput.length - 1;
 
+  const firstX = 0;
+  const lastX = arrInput[0].length - 1;
+
   [firstY, lastY].map(targetY => {
-    // Now that we need to check horizontal, this might need to change
     if (currY === targetY) return;
 
     const targetRow = arrInput[targetY];
@@ -46,11 +46,7 @@ const getCount = (currX, currY, arrInput) => {
     }
   });
 
-  const firstX = 0;
-  const lastX = arrInput[0].length;
-
   [firstX, lastX].map(targetX => {
-    // This probably needs to change too
     if (currX === targetX) return;
 
     for (let targetY = 0; targetY < arrInput.length; targetY++) {
@@ -66,16 +62,15 @@ const getCount = (currX, currY, arrInput) => {
 
     const newTargetRow = arrInput[y];
 
-    if (hit(newTargetRow, x)) {
-      console.log('HIT!', x, y);
-      return true;
-    }
-
     const diffX = currX - x;
     const diffY = currY - y;
-    // console.log('diffY', diffY);
 
     if (diffY === 0) {
+      // TODO: Can I consolidate this with the other if (hit) below?
+      if (hit(newTargetRow, x)) {
+        // console.log('HIT!', x, y);
+        return true;
+      }
       const newX = diffX > 0 ? x + 1 : x - 1;
       return seekInwardsHoriz(newX, y);
     }
@@ -85,6 +80,17 @@ const getCount = (currX, currY, arrInput) => {
 
     if (factor !== parseInt(factor, 10)) return false;
 
+    // We've already checked diagonals
+    if (factor === 1) {
+      return false;
+    }
+
+    if (hit(newTargetRow, x)) {
+      // console.log('HIT!', x, y);
+      return true;
+    }
+
+
     const newY = diffY > 0 ? y + factor : y - factor;
     const newX = diffX > 0 ? x + 1 : x - 1;
 
@@ -92,13 +98,13 @@ const getCount = (currX, currY, arrInput) => {
   }
 
   function seekInwardsVert(x, y) {
-    console.log(currX, currY, '|', x, y)
+    // console.log(currX, currY, '|', x, y)
     if (!isValidTarget(x, y)) return false;
 
     const newTargetRow = arrInput[y];
 
     if (hit(newTargetRow, x)) {
-      console.log('HIT!', x, y);
+      // console.log('HIT!', x, y);
       return true;
     }
 
@@ -126,7 +132,7 @@ const getCount = (currX, currY, arrInput) => {
   function isValidTarget(x, y) {
     if (Math.abs(x) > arrInput[y.length] ||
       Math.abs(y) > arrInput.length) {
-      console.log('OUT OF BOUNDS', x, y);
+      // console.log('OUT OF BOUNDS', x, y);
       return false;
     }
     if (x === currX && y === currY) return false;
@@ -138,8 +144,8 @@ const getCount = (currX, currY, arrInput) => {
 
 }
 
-describe('horizontal', () => {
-  fit('getCount detects asteroids horizontally', () => {
+fdescribe('horizontal', () => {
+  it('getCount detects asteroids horizontally', () => {
     const input = [
       ['...'],
       ['###'],
@@ -151,7 +157,7 @@ describe('horizontal', () => {
     expect(getCount(2, 1, arrInput)).toBe(1);
   });
 
-  fit('getCount detects INNER asteroids horizontally', () => {
+  it('getCount detects INNER asteroids horizontally', () => {
     const input = [
       ['.....'],
       ['.###.'],
@@ -165,7 +171,7 @@ describe('horizontal', () => {
     expect(getCount(4, 1, arrInput)).toBe(0);
   });
 
-  fit('does not overdetect horizontally', () => {
+  it('does not overdetect horizontally', () => {
     const input = [
       ['.....'],
       ['#####'],
@@ -180,8 +186,8 @@ describe('horizontal', () => {
   });
 });
 
-xdescribe('diagonal', () => {
-  fit('getCount detects INNER asteroids diagonally', () => {
+fdescribe('diagonal', () => {
+  it('getCount detects INNER asteroids diagonally', () => {
     const input = [
       ['...'],
       ['.#.'],
