@@ -4,6 +4,12 @@
 
 const convertToArr = input => input.map(ea => ea[0].split(''));
 
+const isCorner = (x, y, arr) =>
+  (x === 0 && (y === 0 || y === arr.length - 1)) ||
+    (y === 0 && (x === 0 || x === arr[0].length - 1));
+
+// const isInteger = num => num !== parseInt(num, 10);
+
 const getAllCounts = input => {
   const arrInput = convertToArr(input);
   const output = arrInput.map(ea => Array(arrInput[0].length).fill(0));
@@ -50,6 +56,7 @@ const getCount = (currX, currY, arrInput) => {
     if (currX === targetX) return;
 
     for (let targetY = 0; targetY < arrInput.length; targetY++) {
+    // console.log('target:', targetX, targetY);
       if (seekInwardsHoriz(targetX, targetY)) {
         count++;
       }
@@ -57,7 +64,7 @@ const getCount = (currX, currY, arrInput) => {
   });
 
   function seekInwardsHoriz(x, y) {
-    // console.log(currX, currY, '|', x, y)
+    console.log(currX, currY, '|', x, y)
     if (!isValidTarget(x, y)) return false;
 
     const newTargetRow = arrInput[y];
@@ -68,25 +75,26 @@ const getCount = (currX, currY, arrInput) => {
     if (diffY === 0) {
       // TODO: Can I consolidate this with the other if (hit) below?
       if (hit(newTargetRow, x)) {
-        // console.log('HIT!', x, y);
+        console.log('HIT!', currX, currY, '|', x, y);
         return true;
       }
       const newX = diffX > 0 ? x + 1 : x - 1;
       return seekInwardsHoriz(newX, y);
     }
 
-    // Sides: diffY should always be larger than diffX
-    const factor = Math.abs(diffY / diffX);
+    // Sides: diffX should always be larger than diffY
+    const factor = Math.abs(diffX / diffY);
 
-    if (factor !== parseInt(factor, 10)) return false;
+    // TODO: Investigate why returning false for an INTEGER passes most tests
+    if (!Number.isInteger(factor)) return false;
 
     // We've already checked diagonals
-    if (factor === 1) {
+    if (factor === 1 || isCorner(x, y, arrInput)) {
       return false;
     }
 
     if (hit(newTargetRow, x)) {
-      // console.log('HIT!', x, y);
+      console.log('HIT!', currX, currY, '|', x, y);
       return true;
     }
 
@@ -104,7 +112,7 @@ const getCount = (currX, currY, arrInput) => {
     const newTargetRow = arrInput[y];
 
     if (hit(newTargetRow, x)) {
-      // console.log('HIT!', x, y);
+      console.log('vert HIT!', currX, currY, '|', x, y);
       return true;
     }
 
@@ -118,10 +126,10 @@ const getCount = (currX, currY, arrInput) => {
       return seekInwardsVert(x, newY);
     }
 
-    // Top/bottom: diffX should always be larger than diffY
-    const factor = Math.abs(diffX / diffY);
+    // Top/bottom: diffY should always be larger than diffX
+    const factor = Math.abs(diffY / diffX);
 
-    if (factor !== parseInt(factor, 10)) return false;
+    if (!Number.isInteger(factor)) return false;
 
     const newY = diffY > 0 ? y + factor : y - factor;
     const newX = diffX > 0 ? x + 1 : x - 1;
@@ -144,7 +152,18 @@ const getCount = (currX, currY, arrInput) => {
 
 }
 
-fdescribe('horizontal', () => {
+it('returns all zeros for all dots', () => {
+  const input = [
+    ['...'],
+    ['...']
+  ];
+  expect(getAllCounts(input)).toEqual([
+    [0, 0, 0],
+    [0, 0, 0]
+  ]);
+})
+
+describe('horizontal', () => {
   it('getCount detects asteroids horizontally', () => {
     const input = [
       ['...'],
@@ -186,7 +205,7 @@ fdescribe('horizontal', () => {
   });
 });
 
-fdescribe('diagonal', () => {
+describe('diagonal', () => {
   it('getCount detects INNER asteroids diagonally', () => {
     const input = [
       ['...'],
@@ -232,20 +251,7 @@ fdescribe('diagonal', () => {
   });
 });
 
-fdescribe('simple', () => {
-  it('returns all zeros for all dots', () => {
-    const input = [
-      ['...'],
-      ['...']
-    ];
-    expect(getAllCounts(input)).toEqual([
-      [0, 0, 0],
-      [0, 0, 0]
-    ]);
-  })
-});
-
-fdescribe('vertical', () => {
+describe('vertical', () => {
   it('getCount detects asteroids vertically', () => {
     const input = [
       ['#..'],
@@ -291,7 +297,7 @@ fdescribe('vertical', () => {
   });
 });
 
-xdescribe('complex', () => {
+describe('complex', () => {
   it('minimal directional example', () => {
     const input = [
       ['.....'],
@@ -317,6 +323,15 @@ xdescribe('complex', () => {
     expect(getCount(2, 2, arrInput)).toBe(16);
   });
 
+  it('finds in obtuse angle outside first row', () => {
+    const input = [
+      ['...'],
+      ['#..'],
+      ['..#'],
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(2, 2, arrInput)).toBe(1);
+  });
   it('small test', () => {
     const input = [
       ['.#..#'],
