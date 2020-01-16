@@ -1,12 +1,16 @@
-// const data = require('./day-10-data');
+const data = require('./day-10-data');
 
-// console.log(data);
+console.log(data);
 
 const convertToArr = input => input.map(ea => ea[0].split(''));
 
-const isCorner = (x, y, arr) =>
-  (x === 0 && (y === 0 || y === arr.length - 1)) ||
-    (y === 0 && (x === 0 || x === arr[0].length - 1));
+const hit = (row, x) => row && row[x] === '#';
+
+const isCorner = (x, y, arr) => {
+  const yIsFirstOrLast = y === 0 || y === arr.length - 1;
+  return (x === 0 && yIsFirstOrLast) ||
+    (x === arr[0].length - 1 && yIsFirstOrLast);
+}
 
 // const isInteger = num => num !== parseInt(num, 10);
 
@@ -24,7 +28,6 @@ const getAllCounts = input => {
 };
 
 const getCount = (currX, currY, arrInput) => {
-  const hit = (row, x) => row && row[x] === '#';
 
   let count = 0;
 
@@ -46,7 +49,7 @@ const getCount = (currX, currY, arrInput) => {
     const targetRow = arrInput[targetY];
     
     for (let targetX = 0; targetX < targetRow.length; targetX++) {
-      if (seekInwardsVert(targetX, targetY)) {
+      if (seekInwardsFromTopBottom(targetX, targetY)) {
         count++;
       }
     }
@@ -56,63 +59,17 @@ const getCount = (currX, currY, arrInput) => {
     if (currX === targetX) return;
 
     for (let targetY = 0; targetY < arrInput.length; targetY++) {
-    // console.log('target:', targetX, targetY);
-      if (seekInwardsHoriz(targetX, targetY)) {
+      if (seekInwardsFromSides(targetX, targetY)) {
         count++;
       }
     }
   });
 
-  function seekInwardsHoriz(x, y) {
-    console.log(currX, currY, '|', x, y)
+  function seekInwardsFromTopBottom(x, y) {
+    // console.log('fromTopBottom', currX, currY, '|', x, y)
     if (!isValidTarget(x, y)) return false;
 
-    const newTargetRow = arrInput[y];
-
-    const diffX = currX - x;
-    const diffY = currY - y;
-
-    if (diffY === 0) {
-      // TODO: Can I consolidate this with the other if (hit) below?
-      if (hit(newTargetRow, x)) {
-        console.log('HIT!', currX, currY, '|', x, y);
-        return true;
-      }
-      const newX = diffX > 0 ? x + 1 : x - 1;
-      return seekInwardsHoriz(newX, y);
-    }
-
-    // Sides: diffX should always be larger than diffY
-    const factor = Math.abs(diffX / diffY);
-
-    // TODO: Investigate why returning false for an INTEGER passes most tests
-    if (!Number.isInteger(factor)) return false;
-
-    // We've already checked diagonals
-    if (factor === 1 || isCorner(x, y, arrInput)) {
-      return false;
-    }
-
-    if (hit(newTargetRow, x)) {
-      console.log('HIT!', currX, currY, '|', x, y);
-      return true;
-    }
-
-
-    const newY = diffY > 0 ? y + factor : y - factor;
-    const newX = diffX > 0 ? x + 1 : x - 1;
-
-    return seekInwardsHoriz(newX, newY);
-  }
-
-  function seekInwardsVert(x, y) {
-    // console.log(currX, currY, '|', x, y)
-    if (!isValidTarget(x, y)) return false;
-
-    const newTargetRow = arrInput[y];
-
-    if (hit(newTargetRow, x)) {
-      console.log('vert HIT!', currX, currY, '|', x, y);
+    if (hit(arrInput[y], x)) {
       return true;
     }
 
@@ -120,21 +77,51 @@ const getCount = (currX, currY, arrInput) => {
     const diffY = currY - y;
 
     // if x is 0, traverse inwards by 1 at a time
-    // (if targetY > currentY, add 1, otherwise subtract 1)
     if (diffX === 0) {
       const newY = diffY > 0 ? y + 1 : y - 1;
-      return seekInwardsVert(x, newY);
+      return seekInwardsFromTopBottom(x, newY);
     }
 
-    // Top/bottom: diffY should always be larger than diffX
     const factor = Math.abs(diffY / diffX);
-
-    if (!Number.isInteger(factor)) return false;
+    // Top/bottom: diffY should always be larger than diffX
+    // if (!Number.isInteger(factor)) return false;
 
     const newY = diffY > 0 ? y + factor : y - factor;
     const newX = diffX > 0 ? x + 1 : x - 1;
 
-    return seekInwardsVert(newX, newY);
+    return seekInwardsFromTopBottom(newX, newY);
+  }
+
+  function seekInwardsFromSides(x, y) {
+    // console.log('fromSides', currX, currY, '|', x, y)
+    if (!isValidTarget(x, y)) return false;
+
+    const diffX = currX - x;
+    const diffY = currY - y;
+
+    // We've already checked corners
+    if (diffY !== 0 && isCorner(x, y, arrInput)) {
+      return false;
+    }
+
+    if (hit(arrInput[y], x)) {
+      // console.log('HIT!', currX, currY, '|', x, y);
+      return true;
+    }
+
+    if (diffY === 0) {
+      const newX = diffX > 0 ? x + 1 : x - 1;
+      return seekInwardsFromSides(newX, y);
+    }
+
+    const factor = Math.abs(diffX / diffY);
+    // Sides: diffX should always be larger than diffY
+    // if (!Number.isInteger(factor)) return false;
+
+    const newY = diffY > 0 ? y + 1 : y - 1;
+    const newX = diffX > 0 ? x + factor : x - factor;
+
+    return seekInwardsFromSides(newX, newY);
   }
 
   function isValidTarget(x, y) {
@@ -151,6 +138,21 @@ const getCount = (currX, currY, arrInput) => {
   return count;
 
 }
+
+const getGridMax = allCounts => {
+  const {x, y, val} = allCounts.reduce((gridMax, rowArr, y) => {
+    const row = rowArr.reduce((rowMax, val, x) => {
+      return val > rowMax.val ? {x, val} : rowMax;
+    }, {x: 0, val: 0});
+
+    return row.val > gridMax.val
+      ? {y, x: row.x, val: row.val}
+      : gridMax;
+  }, {x: 0, y: 0, val: 0});
+
+  return `${x},${y}: ${val}`;
+}
+
 
 it('returns all zeros for all dots', () => {
   const input = [
@@ -343,9 +345,20 @@ describe('complex', () => {
     const arrInput = convertToArr(input);
     expect(getCount(1, 0, arrInput)).toBe(7);
   });
+  it('4, 3 test', () => {
+    const input = [
+      ['.#...'],
+      ['.....'],
+      ['.....'],
+      ['....#'],
+      ['.....']
+    ];
+    const arrInput = convertToArr(input);
+    expect(getCount(1, 0, arrInput)).toBe(1);
+  });
 });
 
-xdescribe('getAllCounts', () => {
+describe('getAllCounts', () => {
   it('getAllCounts converts asteroids to counts', () => {
     const input = [
       ['...'],
@@ -358,24 +371,35 @@ xdescribe('getAllCounts', () => {
   });
 });
 
-// const getGridMax = allCounts => {
-//   const {x, y} = allCounts.reduce((gridMax, rowArr, y) => {
-//     const row = rowArr.reduce((rowMax, val, x) => {
-//       return val > rowMax.val ? {x, val} : rowMax;
-//     }, {x: 0, val: 0});
-// 
-//     return row.val > gridMax.val
-//       ? {y, x: row.x, val: row.val}
-//       : gridMax;
-//   }, {x: 0, y: 0, val: 0});
-// 
-//   return `${x},${y}`;
-// }
-// 
-// it('detects asteroids in a line', () => {
-//   const input = [
-//     ['...'],
-//     ['###'],
-//   ]
-//   expect(getGridMax(getAllCounts(input))).toBe('1,1');
-// });
+describe('getGridMax', () => {
+  it('detects asteroids in a line', () => {
+    const input = [
+      ['...'],
+      ['###'],
+    ]
+    expect(getGridMax(getAllCounts(input))).toBe('1,1: 2');
+  });
+});
+
+describe('examples from adventofcode', () => {
+  it('first', () => {
+    const input = data[0]; 
+    expect(getGridMax(getAllCounts(input))).toBe('5,8: 33');
+  });
+  it('second', () => {
+    const input = data[1]; 
+    expect(getGridMax(getAllCounts(input))).toBe('1,2: 35');
+  });
+  it('third', () => {
+    const input = data[2]; 
+    expect(getGridMax(getAllCounts(input))).toBe('6,3: 41');
+  });
+  it('fourth', () => {
+    const input = data[3]; 
+    expect(getGridMax(getAllCounts(input))).toBe('11,13: 210');
+  });
+  it('fifth', () => {
+    const input = data[4]; 
+    expect(getGridMax(getAllCounts(input))).toBe('20,8: 10');
+  });
+});
